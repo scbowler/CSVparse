@@ -24,15 +24,14 @@ function fileUp(evt){
     reader.onload = function(e){
         csvData = e.target.result;
         $("#csv").val(csvData);
-    }
+        if(selected == "populate"){
+            updateInfo("popStudents");
+        }
+    };
 
     var selected = $("input[type=radio]:checked").attr("id");
 
     console.log("Selected on file load", selected);
-
-    if(selected == "populate"){
-        updateInfo("popStudents");
-    }
 }
 
 function toggleHidden(ele){
@@ -91,8 +90,15 @@ function popStuList(stuArr){
     console.log("Thanks");
     var len = stuArr.length;
 
+    var label = $("<label>", {
+        for: "students",
+        text: "Select Student"
+    });
+
     var sel = $("<select>", {
-        class: "students show"
+        class: "students show",
+        name: "students",
+        id: "students"
     });
 
     for(var i=0; i<len; i++){

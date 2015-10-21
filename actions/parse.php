@@ -12,6 +12,10 @@ switch($action) {
     case 'rta':
         rta($csv);
         break;
+    case 'report':
+        include_once('../assets/reportCSS.php');
+        personalReport($csv);
+        break;
     case 'mostProto':
         getMax($csv);
         break;
@@ -131,6 +135,67 @@ function rta($csv) {
     echo '<pre>';
     print_r($output);
     echo '<pre>';
+}
+
+function personalReport($csv){
+
+    $output['success'] = false;
+
+    $sName = $_POST['students'];
+
+    $sData = str_getcsv($csv, "\n", $enclosure = '"');
+
+    foreach($sData as &$row) $row = str_getcsv($row, ",", $enclosure = '"');
+
+    $output['totalScore'] = 0;
+    $output['totalOnTime'] = 0;
+
+    foreach($sData as $v){
+        if($v[2] == $sName) {
+            if(strpos($v[9], 'score') || strpos($v[9], 'Score')) {
+                $output['name'] = $v[2];
+                $output['proto'][] = $v[9];
+                $output['score'][] = $v[10];
+                $output['totalScore'] += $v[10];
+            }else{
+                //$output['complete'][] = $v[9];
+                if($v[10] == 1) {
+                    $output['ontime'][] = 'Yes';
+                    $output['totalOnTime']++;
+                }else if($v[10] == 0){
+                    $output['ontime'][] = 'No';
+                }
+            }
+        }
+    }
+
+    $len = count($output['proto']);
+
+    if($len > 0) {
+        $output['success'] = true;
+        $html = '<h1 class="sName">' . $output['name'] . '</h1><h3><a href="../index.php">Home</a></h3><table class="overview"><tr><th>Prototype</th><th>Score</th><th>On-Time</th></tr>';
+
+        for ($i = 0; $i < $len; $i++) {
+            $score = $output['score'][$i];
+            $class = '';
+
+            if($score == 1){
+                $class = 'yellow';
+            }else if($score == 0){
+                $class = 'red';
+            }
+            $html .= '<tr class="'.$class.'"><td>' . $output['proto'][$i] . '</td><td>' . $score . '</td><td>' . $output['ontime'][$i] . '</td></tr>';
+        }
+        $overallTotal = $_POST['maxProto'];
+        $personalPerc = round((($output['totalScore']/($len*2))*100),2).'%';
+        $overallPerc = round((($output['totalScore']/$overallTotal)*100),2).'%';
+        $ontime = round(($output['totalOnTime']/$len)*100,2).'%';
+
+        $html .= '<table class="stats"><tr><th colspan="2">'.$len.' of '.round($overallTotal/2,0).' Prototypes Submitted</th></tr><tr><td>Personal Score of Reviewed Prototypes</td><th>'.$personalPerc.'</th></tr>
+        <tr><td>Overall class percentage based on '.$overallTotal.' prototypes</td><th>'.$overallPerc.'</th></tr>
+        <tr><td>On-time percentage (of reviewed)</td><th>'.$ontime.'</th></tr></table>';
+    }
+    echo $html;
 }
 
 function getMax($csv){

@@ -20,7 +20,7 @@
             <input type="radio" name="action" id="proto" value="prototype" checked>
             <label for="rta">Remote TA</label>
             <input type="radio" name="action" id="rta" value="rta">
-            <label for="populate">Populate Student List</label>
+            <label for="populate">Personalized Report</label>
             <input type="radio" name="action" id="populate" value="report">
         </div>
         <div class="contain">
