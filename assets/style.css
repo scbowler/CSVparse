@@ -1,0 +1,50 @@
+body {
+    text-align: center;
+}
+
+input,
+label,
+#btn {
+    margin: 3% 0;
+}
+
+textarea {
+    margin-top: 1%;
+}
+
+form {
+    border: 3px solid black;
+    display: inline-block;
+    text-align: center;
+    width: 45vw;
+    max-height: 80vh;
+}
+
+.proto {
+    display: inline-block;
+}
+
+.rta {
+    display: inline-block;
+}
+
+.contain {
+    display: inline-block;
+    border: 2px solid green;
+    padding: 1%;
+    margin-top: 1%;
+    height: 58px;
+
+}
+
+#btn {
+    height: 10vh;
+    width: 45%;
+    font-size: 110%;
+}
+
+
+
+.hide {
+    display: none;
+}

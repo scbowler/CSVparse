@@ -1,41 +1,27 @@
-<style>
-    th {
-        border: 1px solid black;
-        text-align: center;
-        padding: 1% 4px;
-    }
-    td {
-       border: 1px solid black;
-        text-align: center;
-    }
-
-    tr:nth-child(even) {
-        background-color: lightgray;
-    }
-</style>
-
-
 <?php
 
-$output = [];
 $csv = $_POST['csvFile'];
 $action = $_POST['action'];
+$proto = $_POST['maxProto'];
 
 switch($action) {
     case 'prototype':
-        prototype($csv);
+        include_once('../assets/parseCSS.php');
+        prototype($csv, $proto);
         break;
     case 'rta':
         rta($csv);
+        break;
+    case 'autoPop':
+        getMax($csv);
         break;
     default:
         echo 'No action chosen';
         break;
 }
 
-
-function prototype($csv){
-    global $output;
+function buildArray($csv){
+    $output = [];
 
     $sData = str_getcsv($csv, "\n", $enclosure = '"');
 
@@ -68,59 +54,96 @@ function prototype($csv){
             }
         }
     }
+    return $output;
+}
+
+
+function prototype($csv, $proto){
+    $output = buildArray($csv);
 
     $str = "<table><tr><th>Name</th><th>Score</th><th>Personal Possible Score</th><th>On Time</th><th>Possible On Time</th><th>Overall Possible</th><th>Personal Snapshot</th><th>Overall Snapshot</th></tr>";
-
 
     foreach ($output as $k=>$v) {
         if ($k !== 'Student Name') {
 
             $avg = round(($v['score'] + $v['ot']) / ($v['maxScore'] + $v['maxOt']), 2)*100;
-            $avg2 = round(($v['score'] + $v['ot']) / (14 + 7), 2)*100;
+            $avg2 = round(($v['score'] + $v['ot']) / ($proto + ($proto/2)), 2)*100;
             $str .= "<tr><td>$k</td><td>" . $v['score'] . "</td><td>" . $v['maxScore'] . "</td><td>" . $v['ot'] . "</td><td>" . $v['maxOt'] .
-                "</td><td>14</td><td>$avg%</td><td>$avg2%</td></tr>";
+                "</td><td>$proto</td><td>$avg%</td><td>$avg2%</td></tr>";
         }
     }
-        $str .= '</table>';
+        $str .= '</table><h3><a href="../index.php">Home</a></h3>';
 
         echo $str;
-
-
-//    echo '<pre>';
-//    print_r($output);
-//    echo '<pre>';
 }
 
 function rta($csv) {
-    global $output;
+    $output = [];
+
+    $setDates = false;
+
+    $sDate = strtotime($_POST['start-date']);
+    $eDate = strtotime($_POST['end-date']);
+
+    if($sDate > 0){
+        if($eDate == 0){
+            $eDate = time();
+        }
+        $setDates = true;
+    }
+
+    echo '<br>'.$setDates;
 
     $sData = str_getcsv($csv, "\n", $enclosure = '"');
 
     foreach($sData as &$row) $row = str_getcsv($row, ",", $enclosure = '"');
 
-    //$conv = explode(' ', $sData[1][0])[0];
-
     foreach($sData as $k=>$v){
-        //print_r($v);
-        //echo '<br>';
 
         $date = explode(' ', $v[0])[0];
         $name = $v[4];
 
         if (strpos($v[9], 'score')) {
             if (!isset($output[$name][$date])) {
-                $output[$name][$date] = 1;
+                if($setDates){
+                    $ts = strtotime($date);
+                    if($ts >= $sDate && $ts<= $eDate){
+                        $output[$name][$date] = 1;
+                    }
+                }else {
+                    $output[$name][$date] = 1;
+                }
             } else {
-                $output[$name][$date]++;
+                if($setDates){
+                    $ts = strtotime($date);
+                    if($ts >= $sDate && $ts<= $eDate){
+                        $output[$name][$date]++;
+                    }
+                }else {
+                    $output[$name][$date]++;
+                }
             }
         }
     }
-
     echo '<pre>';
     print_r($output);
     echo '<pre>';
-
-
 }
 
+function getMax($csv){
+    $output['success'] = false;
+    $output['high'] = 0;
+
+    $dataArr = buildArray($csv);
+
+    foreach($dataArr as $k=>$v){
+        $max = $v['maxScore'];
+
+        if($output['high'] < $max){
+            $output['high'] = $max;
+            $output['success'] = true;
+        }
+    }
+    echo json_encode($output);
+}
 ?>

@@ -3,17 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <title>Student Tracker Info</title>
+
+    <link rel="stylesheet" href="assets/style.css">
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script src="assets/main.js"></script>
 </head>
 <body>
     <h1>Student Tracker Parser</h1>
 
-    <form action="parse.php" method="post">
-        <textarea name="csvFile" id="csv" cols="30" rows="10" placeholder="Copy csv data here"></textarea>
-        <label for="prototype">Prototypes</label>
-        <input type="radio" name="action" id="prototype" value="prototype">
-        <label for="rta">Remote TA</label>
-        <input type="radio" name="action" id="rta" value="rta">
-        <button>Submit</button>
+    <form action="actions/parse.php" method="post">
+        <input type="file" name="File Upload" id="txtFileUpload" accept=".csv">
+        <textarea name="csvFile" id="csv" cols="80" rows="3" placeholder="Copy csv data here -OR- Click button above to load a CSV file"></textarea>
+        <div class="radio-contain">
+            <label for="prototype">Prototypes</label>
+            <input type="radio" name="action" id="proto" value="prototype" checked>
+            <label for="rta">Remote TA</label>
+            <input type="radio" name="action" id="rta" value="rta">
+        </div>
+        <div class="contain">
+            <label for="maxProto" class="proto">Total Prototypes Due</label>
+            <input type="number" name="maxProto" id="maxProto" class="proto" placeholder="Total prototypes">
+            <div>
+                <button type="button" id="auto-pop" class="proto">Auto Populate Total Prototypes</button>
+            </div>
+            <label for="start-date" class="rta hide">Start Date</label>
+            <input type="date" name="start-date" id="start-date" class="rta hide">
+            <label for="end-date" class="rta hide">End Date</label>
+            <input type="date" name="end-date" id="end-date" class="rta hide">
+        </div>
+        <div class="btn-contain">
+            <button id="btn">Submit</button>
+        </div>
     </form>
 </body>
 </html>
