@@ -20,21 +20,24 @@
             <input type="radio" name="action" id="proto" value="prototype" checked>
             <label for="rta">Remote TA</label>
             <input type="radio" name="action" id="rta" value="rta">
+            <label for="populate">Populate Student List</label>
+            <input type="radio" name="action" id="populate" value="report">
         </div>
         <div class="contain">
-            <label for="maxProto" class="proto">Total Prototypes Due</label>
-            <input type="number" name="maxProto" id="maxProto" class="proto" placeholder="Total prototypes">
+            <label for="maxProto" class="proto show">Total Prototypes Due</label>
+            <input type="number" name="maxProto" id="maxProto" class="proto show" placeholder="Total prototypes">
             <div>
-                <button type="button" id="auto-pop" class="proto">Auto Populate Total Prototypes</button>
+                <button type="button" id="auto-pop" class="proto show">Auto Populate Total Prototypes</button>
             </div>
-            <label for="start-date" class="rta hide">Start Date</label>
-            <input type="date" name="start-date" id="start-date" class="rta hide">
-            <label for="end-date" class="rta hide">End Date</label>
-            <input type="date" name="end-date" id="end-date" class="rta hide">
+            <label for="start-date" class="rta">Start Date</label>
+            <input type="date" name="start-date" id="start-date" class="rta">
+            <label for="end-date" class="rta">End Date</label>
+            <input type="date" name="end-date" id="end-date" class="rta">
         </div>
         <div class="btn-contain">
             <button id="btn">Submit</button>
         </div>
     </form>
+
 </body>
 </html>

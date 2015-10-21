@@ -12,8 +12,11 @@ switch($action) {
     case 'rta':
         rta($csv);
         break;
-    case 'autoPop':
+    case 'mostProto':
         getMax($csv);
+        break;
+    case 'popStudents':
+        popStudents($csv);
         break;
     default:
         echo 'No action chosen';
@@ -146,4 +149,25 @@ function getMax($csv){
     }
     echo json_encode($output);
 }
+
+function popStudents($csv){
+    $output['students'] = [];
+    $output['success'] = false;
+
+    $dataArr = buildArray($csv);
+
+    if(count($dataArr) > 1){
+        foreach ($dataArr as $k=>$v){
+            if($k !== 'Student Name') {
+                $output['students'][] = $k;
+            }
+        }
+
+        if(count($output['students'])){
+            $output['success'] = true;
+        }
+    }
+    echo json_encode($output);
+}
+
 ?>

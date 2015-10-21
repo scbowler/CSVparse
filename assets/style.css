@@ -20,12 +20,10 @@ form {
     max-height: 80vh;
 }
 
-.proto {
-    display: inline-block;
-}
-
-.rta {
-    display: inline-block;
+.proto,
+.rta,
+.students {
+    display: none;
 }
 
 .contain {
@@ -33,8 +31,11 @@ form {
     border: 2px solid green;
     padding: 1%;
     margin-top: 1%;
-    height: 58px;
+    height: 88px;
+}
 
+.students {
+    margin: 4%;
 }
 
 #btn {
@@ -45,6 +46,6 @@ form {
 
 
 
-.hide {
-    display: none;
+.show {
+    display: inline-block;
 }
