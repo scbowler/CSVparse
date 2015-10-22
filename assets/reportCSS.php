@@ -36,4 +36,8 @@
         background-color: lightpink;
     }
 
+    .gray {
+        background-color: lightgray;
+    }
+
 </style>

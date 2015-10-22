@@ -1,8 +1,14 @@
 <?php
 
-$csv = $_POST['csvFile'];
-$action = $_POST['action'];
-$proto = $_POST['maxProto'];
+if(isset($_POST['csvFile'])) {
+    $csv = $_POST['csvFile'];
+}
+if(isset($_POST['action'])) {
+    $action = $_POST['action'];
+}
+if(isset($_POST['maxProto'])) {
+    $proto = $_POST['maxProto'];
+}
 
 switch($action) {
     case 'prototype':
@@ -37,7 +43,7 @@ function buildArray($csv){
     foreach ($sData as $aRow) {
 
         if($aRow[2] !== '') {
-            if (strpos($aRow[9], 'score')) {
+            if (strpos($aRow[9], 'score') || strpos($aRow[9], 'Score')) {
                 if (isset($output[$aRow[2]]['score'])) {
                     $output[$aRow[2]]['score'] += $aRow[10];
                     $output[$aRow[2]]['maxScore'] += $aRow[11];
@@ -49,10 +55,10 @@ function buildArray($csv){
             } else {
                 if (isset($output[$aRow[2]]['ot'])) {
                     $output[$aRow[2]]['ot'] += (int)$aRow[10];
-                    $output[$aRow[2]]['maxOt'] += (int)$aRow[11];
+                    $output[$aRow[2]]['maxOt']++;
                 } else {
                     $output[$aRow[2]]['ot'] = (int)$aRow[10];
-                    $output[$aRow[2]]['maxOt'] = (int)$aRow[11];
+                    $output[$aRow[2]]['maxOt'] = 1;
                 }
 
                 if($output[$aRow[2]]['maxOt'] > 0) {
@@ -110,7 +116,7 @@ function rta($csv) {
         $date = explode(' ', $v[0])[0];
         $name = $v[4];
 
-        if (strpos($v[9], 'score')) {
+        if (strpos($v[9], 'score') || strpos($v[9], 'Score')) {
             if (!isset($output[$name][$date])) {
                 if($setDates){
                     $ts = strtotime($date);
@@ -158,7 +164,7 @@ function personalReport($csv){
                 $output['score'][] = $v[10];
                 $output['totalScore'] += $v[10];
             }else{
-                //$output['complete'][] = $v[9];
+                $output['complete'][] = $v[9];
                 if($v[10] == 1) {
                     $output['ontime'][] = 'Yes';
                     $output['totalOnTime']++;
@@ -168,34 +174,66 @@ function personalReport($csv){
             }
         }
     }
-
     $len = count($output['proto']);
+    $lenOt = count($output['ontime']);
 
     if($len > 0) {
         $output['success'] = true;
+        $offset = '<p>Score and Complete match</p>';
+        if($len > $lenOt){
+            $missing = $len - $lenOt;
+            $ent = 'entry';
+            if($missing > 1){
+                $ent = 'entries';
+            }
+            $offset = "<p>There is $missing extra ".'"score" '.$ent."</p>";
+        }else if($len < $lenOt){
+            $missing = $lenOt - $len;
+            $ent = 'entry';
+            if($missing > 1){
+                $ent = 'entries';
+            }
+            $offset = "<p>There is $missing extra ".'"complete" '.$ent."</p>";
+        }
         $html = '<h1 class="sName">' . $output['name'] . '</h1><h3><a href="../index.php">Home</a></h3><table class="overview"><tr><th>Prototype</th><th>Score</th><th>On-Time</th></tr>';
 
         for ($i = 0; $i < $len; $i++) {
             $score = $output['score'][$i];
             $class = '';
+            $ot = $output['ontime'][$i];
+            $otClass = '';
+            $missingData = '';
 
             if($score == 1){
                 $class = 'yellow';
             }else if($score == 0){
                 $class = 'red';
             }
-            $html .= '<tr class="'.$class.'"><td>' . $output['proto'][$i] . '</td><td>' . $score . '</td><td>' . $output['ontime'][$i] . '</td></tr>';
+            if($ot == 'No'){
+                $otClass = 'red';
+            }else if($ot == ''){
+                $otClass = 'gray';
+                $ot = 'Yes';
+                $missingData = '*';
+                $output['totalOnTime']++;
+            }
+
+            $html .= '<tr class="'.$class.'"><td>' . $output['proto'][$i] . '</td><td>' . $score . '</td><td class="'.$otClass.'">' . $ot . '</td></tr>';
         }
         $overallTotal = $_POST['maxProto'];
         $personalPerc = round((($output['totalScore']/($len*2))*100),2).'%';
         $overallPerc = round((($output['totalScore']/$overallTotal)*100),2).'%';
-        $ontime = round(($output['totalOnTime']/$len)*100,2).'%';
+        $ontime = round(($output['totalOnTime']/$len)*100,2).'%'.$missingData;
 
         $html .= '<table class="stats"><tr><th colspan="2">'.$len.' of '.round($overallTotal/2,0).' Prototypes Submitted</th></tr><tr><td>Personal Score of Reviewed Prototypes</td><th>'.$personalPerc.'</th></tr>
-        <tr><td>Overall class percentage based on '.$overallTotal.' prototypes</td><th>'.$overallPerc.'</th></tr>
-        <tr><td>On-time percentage (of reviewed)</td><th>'.$ontime.'</th></tr></table>';
+        <tr><td>Overall class percentage based on '.round($overallTotal/2,0).' prototypes</td><th>'.$overallPerc.'</th></tr>
+        <tr><td>On-time percentage (of reviewed)</td><th>'.$ontime.'</th></tr></table><p>If * is present on "On-Time" percentage, data is missing from tracker</p>'.$offset;
     }
     echo $html;
+
+    echo '<pre>';
+    print_r($output);
+    echo '</pre>';
 }
 
 function getMax($csv){
@@ -205,11 +243,13 @@ function getMax($csv){
     $dataArr = buildArray($csv);
 
     foreach($dataArr as $k=>$v){
-        $max = $v['maxScore'];
+        if(isset($v['maxScore'])) {
+            $max = $v['maxScore'];
 
-        if($output['high'] < $max){
-            $output['high'] = $max;
-            $output['success'] = true;
+            if ($output['high'] < $max) {
+                $output['high'] = $max;
+                $output['success'] = true;
+            }
         }
     }
     echo json_encode($output);
