@@ -28,6 +28,9 @@ switch($action) {
     case 'popStudents':
         popStudents($csv);
         break;
+    case 'error':
+        errorCheck($csv);
+        break;
     default:
         echo 'No action chosen';
         break;
@@ -143,6 +146,52 @@ function rta($csv) {
     echo '<pre>';
 }
 
+function getProtoList($arr){
+    $output = [];
+
+    foreach($arr as $v){
+        if($v[9] != 'Tracking Item') {
+            $proto = explode(' (', $v[9])[0];
+            if (!isset($output[$proto])) {
+                $output[$proto] = false;
+            }
+        }
+    }
+    return $output;
+}
+
+function missTable($arr){
+    $html = '<table id="miss-proto"><tr><th>Missing Prototypes</th></tr>';
+    $opt = false;
+    $none = true;
+
+    foreach($arr as $k=>$v){
+        if(!$v){
+            $none = false;
+            $html .= "<tr><td>$k</td></tr>";
+            if(strpos($k, '*')){
+                $opt = true;
+            }
+        }
+    }
+
+    end($arr);
+    $k = key($arr);
+
+    if($none){
+        $html .= '<tr class="sp-note"><td>No missing prototypes</td></tr>';
+    }
+    if(!$arr[$k]){
+        $html .= "<tr class='sp-note'><td>$k may not yet be reviewed</td></tr>";
+    }
+    if($opt){
+        $html .= '<tr class="sp-note"><td>Prototypes with * are optional</td></tr>';
+    }
+    $html .= '</table>';
+
+    return $html;
+}
+
 function personalReport($csv){
 
     $output['success'] = false;
@@ -153,14 +202,25 @@ function personalReport($csv){
 
     foreach($sData as &$row) $row = str_getcsv($row, ",", $enclosure = '"');
 
+    $output['protoList'] = getProtoList($sData);
+
+//    echo "<pre>";
+//    print_r($output);
+//    echo "</pre>";
+//    return;
+
     $output['totalScore'] = 0;
     $output['totalOnTime'] = 0;
 
-    foreach($sData as $v){
+    foreach($sData as $k=>$v){
         if($v[2] == $sName) {
+            $proto = explode(' (', $v[9])[0];
+            if (isset($output['protoList'][$proto])){
+                $output['protoList'][$proto] = true;
+            }
             if(strpos($v[9], 'score') || strpos($v[9], 'Score')) {
                 $output['name'] = $v[2];
-                $output['proto'][] = $v[9];
+                $output['proto'][] = $proto;
                 $output['score'][] = $v[10];
                 $output['totalScore'] += $v[10];
             }else{
@@ -170,6 +230,8 @@ function personalReport($csv){
                     $output['totalOnTime']++;
                 }else if($v[10] == 0){
                     $output['ontime'][] = 'No';
+                }else{
+                    $output['ontime'][] = "ERROR $v[10] $v[0]";
                 }
             }
         }
@@ -195,27 +257,29 @@ function personalReport($csv){
             }
             $offset = "<p>There is $missing extra ".'"complete" '.$ent."</p>";
         }
-        $html = '<h1 class="sName">' . $output['name'] . '</h1><h3><a href="../index.php">Home</a></h3><table class="overview"><tr><th>Prototype</th><th>Score</th><th>On-Time</th></tr>';
+        $html = '<h1 class="sName">' . $output['name'] . '</h1><div><a href="../index.php"><img src="../assets/images/home-icon.png"></a></div><table class="overview"><tr><th>Prototype</th><th>Score</th><th>On-Time</th></tr>';
 
         for ($i = 0; $i < $len; $i++) {
             $score = $output['score'][$i];
             $class = '';
-            $ot = $output['ontime'][$i];
             $otClass = '';
             $missingData = '';
 
-            if($score == 1){
-                $class = 'yellow';
-            }else if($score == 0){
-                $class = 'red';
-            }
-            if($ot == 'No'){
-                $otClass = 'red';
-            }else if($ot == ''){
+            if(isset($output['ontime'][$i])){
+                $ot = $output['ontime'][$i];
+                if($ot == 'No' || strpos($ot, 'ERROR')){
+                    $otClass = 'red';
+                }
+            }else{
                 $otClass = 'gray';
                 $ot = 'Yes';
                 $missingData = '*';
                 $output['totalOnTime']++;
+            }
+            if($score == 1){
+                $class = 'yellow';
+            }else if($score == 0){
+                $class = 'red';
             }
 
             $html .= '<tr class="'.$class.'"><td>' . $output['proto'][$i] . '</td><td>' . $score . '</td><td class="'.$otClass.'">' . $ot . '</td></tr>';
@@ -227,13 +291,15 @@ function personalReport($csv){
 
         $html .= '<table class="stats"><tr><th colspan="2">'.$len.' of '.round($overallTotal/2,0).' Prototypes Submitted</th></tr><tr><td>Personal Score of Reviewed Prototypes</td><th>'.$personalPerc.'</th></tr>
         <tr><td>Overall class percentage based on '.round($overallTotal/2,0).' prototypes</td><th>'.$overallPerc.'</th></tr>
-        <tr><td>On-time percentage (of reviewed)</td><th>'.$ontime.'</th></tr></table><p>If * is present on "On-Time" percentage, data is missing from tracker</p>'.$offset;
+        <tr><td>On-time percentage (of reviewed)</td><th>'.$ontime.'</th></tr></table>'.missTable($output['protoList']).'<p>If * is present on "On-Time" percentage, data is missing from tracker</p>'.$offset;
     }
+    //$html .= ;
+
     echo $html;
 
-    echo '<pre>';
-    print_r($output);
-    echo '</pre>';
+//    echo '<pre>';
+//    print_r($output);
+//    echo '</pre>';
 }
 
 function getMax($csv){
@@ -273,6 +339,70 @@ function popStudents($csv){
         }
     }
     echo json_encode($output);
+}
+
+function errorCheck($csv){
+    echo "<h1>Error Check Results</h1>";
+    $output['errorCount'] = 0;
+    $stuChk = [];
+
+    $sData = str_getcsv($csv, "\n", $enclosure = '"');
+
+    foreach($sData as &$row) $row = str_getcsv($row, ",", $enclosure = '"');
+
+    foreach($sData as $k=>$v){
+        if($k != 0) {
+            $proto = explode(' (', $v[9])[0];
+            if(isset($stuChk[$v[2]][$proto])){
+                $stuChk[$v[2]][$proto]['count']++;
+            }else{
+                $stuChk[$v[2]][$proto]['count'] = 1;
+            }
+            $stuChk[$v[2]][$proto]['last-line'] = $k;
+            if (strpos($v[9], 'complete') || strpos($v[9], 'Complete')) {
+                if ($v[11] != 1) {
+                    $output['row'][] = $k;
+                    $output['errorType'][] = 'completed';
+                    $output['maxValue'][] = $v[11];
+                    $output['test'][] = explode(' (', $v[9])[0];
+                    $output['errorCount']++;
+                }
+            } else if (strpos($v[9], 'score') || strpos($v[9], 'Score')) {
+                if ($v[11] != 2) {
+                    $output['row'][] = $k;
+                    $output['errorType'][] = 'score';
+                    $output['maxValue'][] = $v[11];
+                    $output['test'][] = explode(' (', $v[9])[0];
+                    $output['errorCount']++;
+                }
+            } else {
+                $output['row'][] = $k;
+                $output['errorType'][] = 'Invalid Item';
+                $output['item'][] = $v[9];
+                $output['test'][] = explode(' (', $v[9])[0];
+                $output['errorCount']++;
+            }
+        }
+    }
+
+    foreach($stuChk as $k=>$v){
+        $output[$k]['mistakes'] = 0;
+        foreach($stuChk[$k] as $k2=>$v2){
+            if($v2['count'] != 2){
+                $output[$k]['mistakes']++;
+                $output[$k][$k2] = $v2;
+                $output[$k][$k2]['last-line'] = $v2['last-line'];
+                $output['errorCount']++;
+            }
+        }
+    }
+
+//    echo '<pre>';
+//    print_r($stuChk);
+//    echo '</pre>';
+    echo '<pre>';
+    print_r($output);
+    echo '</pre>';
 }
 
 ?>

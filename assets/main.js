@@ -1,5 +1,10 @@
 $(document).ready(function(){
 
+    var currentCheck = $("input[type='radio']:checked").val();
+    if(currentCheck == 'report'){
+        updateInfo("popStudents");
+    }
+
     $("form").on("click", "input[type=radio]", function(){
         toggleHidden(this);
     });
@@ -16,6 +21,7 @@ $(document).ready(function(){
 });
 
 function fileUp(evt){
+    var selected = $("input[type=radio]:checked").attr("id");
     var file = evt.target.files[0];
     var reader = new FileReader();
     var csvData = "";
@@ -27,9 +33,10 @@ function fileUp(evt){
         if(selected == "populate"){
             updateInfo("popStudents");
         }
+        if(selected != "rta"){
+            updateInfo("mostProto");
+        }
     };
-
-    var selected = $("input[type=radio]:checked").attr("id");
 
     console.log("Selected on file load", selected);
 }

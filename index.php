@@ -22,6 +22,8 @@
             <input type="radio" name="action" id="rta" value="rta">
             <label for="populate">Personalized Report</label>
             <input type="radio" name="action" id="populate" value="report">
+            <label for="error">Error Check CSV</label>
+            <input type="radio" name="action" id="error" value="error">
         </div>
         <div class="contain">
             <label for="maxProto" class="proto show">Total Prototypes Due</label>
