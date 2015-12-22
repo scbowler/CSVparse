@@ -74,7 +74,8 @@
         background-color: #ffffca;
     }
 
-    .red {
+    .red,
+    .red td {
         background-color: pink;
         box-shadow: 1px 1px 3px gray, -3px -3px 6px #ca8f8f inset;
     }
