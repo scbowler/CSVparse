@@ -14,6 +14,7 @@ switch($action) {
     case 'prototype':
         include_once('../assets/parseCSS.php');
         prototype($csv, $proto);
+        //buildArray($csv);
         break;
     case 'rta':
         rta($csv);
@@ -40,57 +41,117 @@ function buildArray($csv){
     $output = [];
 
     $sData = str_getcsv($csv, "\n", $enclosure = '"');
+    $count = 0;
 
-    foreach($sData as &$row) $row = str_getcsv($row, ",", $enclosure = '"');
-
-    foreach ($sData as $aRow) {
-
-        if($aRow[2] !== '') {
-            if (strpos($aRow[9], 'score') || strpos($aRow[9], 'Score')) {
-                if (isset($output[$aRow[2]]['score'])) {
-                    $output[$aRow[2]]['score'] += $aRow[10];
-                    $output[$aRow[2]]['maxScore'] += $aRow[11];
-                } else {
-                    $output[$aRow[2]]['score'] = $aRow[10];
-                    $output[$aRow[2]]['maxScore'] = $aRow[11];
-                }
-                $output[$aRow[2]]['sAvg'] = $output[$aRow[2]]['score'] / $output[$aRow[2]]['maxScore'];
-            } else {
-                if (isset($output[$aRow[2]]['ot'])) {
-                    $output[$aRow[2]]['ot'] += (int)$aRow[10];
-                    $output[$aRow[2]]['maxOt']++;
-                } else {
-                    $output[$aRow[2]]['ot'] = (int)$aRow[10];
-                    $output[$aRow[2]]['maxOt'] = 1;
-                }
-
-                if($output[$aRow[2]]['maxOt'] > 0) {
-                    $output[$aRow[2]]['otAvg'] = $output[$aRow[2]]['ot'] / $output[$aRow[2]]['maxOt'];
-                }
+    foreach($sData as &$row) {
+        $row = str_getcsv($row, ",", $enclosure = '"');
+        if($count == 0){
+            $output['index'] = $row;
+        }else{
+            for($i = 0; $i < count($output['index']); $i++){
+                $temp[$output['index'][$i]] = $row[$i];
             }
+            $output['data'][] = $temp;
         }
+        $count++;
     }
+//    echo "<pre>";
+//    print_r($output);
+//    echo "</pre>";
+
     return $output;
 }
 
+function studentArray($arr){
+
+    $output = [];
+    $ontime = 0;
+
+    foreach($arr['data'] as $v){
+
+        if(!isset($output[$v['Student Name']])){
+            $output[$v['Student Name']] = [
+                'score' => 0,
+                'ontime' => 0,
+                'list' => []
+            ];
+        }
+
+        if(strtolower($v['On time']) == 'yes'){
+            $ontime = 1;
+        }else{
+            $ontime = 0;
+        }
+
+        $output[$v['Student Name']]['score'] += $v['Score'];
+        $output[$v['Student Name']]['ontime'] += $ontime;
+        $output[$v['Student Name']]['list'][] = [
+            'pName' => $v['Tracking Item'],
+            'pScore' => $v['Score'],
+            'pOntime' => $v['On time']
+        ];
+
+
+//        if(isset($output[$v['Student Name']]['score'])){
+//            $output[$v['Student Name']]['score'] += $v['Score'];
+//        }else{
+//            $output[$v['Student Name']]['score'] = $v['Score'];
+//        }
+//
+//        if(strtolower($v['On time']) == 'yes'){
+//            $ontime = 1;
+//        }else{
+//            $ontime = 0;
+//        }
+//
+//        if(isset($output[$v['Student Name']]['ontime'])){
+//            $output[$v['Student Name']]['ontime'] += $ontime;
+//        }else{
+//            $output[$v['Student Name']]['ontime'] = $ontime;
+//        }
+//
+//        if(isset($output[$v['Student Name']]))
+
+    }
+
+    return $output;
+}
 
 function prototype($csv, $proto){
-    $output = buildArray($csv);
+    $data = studentArray(buildArray($csv));
 
-    $str = "<table><tr><th>Name</th><th>Score</th><th>Personal Possible Score</th><th>On Time</th><th>Possible On Time</th><th>Overall Possible</th><th>Personal Snapshot</th><th>Overall Snapshot</th></tr>";
+    echo "<pre>";
+    print_r($data);
+    echo "</pre>";
 
-    foreach ($output as $k=>$v) {
-        if ($k !== 'Student Name') {
 
-            $avg = round(($v['score'] + $v['ot']) / ($v['maxScore'] + $v['maxOt']), 2)*100;
-            $avg2 = round(($v['score'] + $v['ot']) / ($proto + ($proto/2)), 2)*100;
-            $str .= "<tr><td>$k</td><td>" . $v['score'] . "</td><td>" . $v['maxScore'] . "</td><td>" . $v['ot'] . "</td><td>" . $v['maxOt'] .
-                "</td><td>$proto</td><td>$avg%</td><td>$avg2%</td></tr>";
-        }
-    }
-        $str .= '</table><h3><a href="../index.php">Home</a></h3>';
+    // Timestamp
+    // Student Name
+    // LFZ Reviewer
+    // Date Reviewed
+    // Tracking Category
+    // Tracking Item
+    // Score
+    // On time
 
-        echo $str;
+//    foreach($data['data'] as $v){
+//        $html = '<table><tbody><tr><th>Student Name</th><th></th></tr></tbody></table>';
+//    }
+
+//    $str = "<table><tr><th>Name</th><th>Score</th><th>Personal Possible Score</th><th>On Time</th><th>Possible On Time</th><th>Overall Possible</th><th>Personal Snapshot</th><th>Overall Snapshot</th></tr>";
+//
+//    foreach ($output as $k=>$v) {
+//        if ($k !== 'Student Name') {
+//
+//            $avg = round(($v['score'] + $v['ot']) / ($v['maxScore'] + $v['maxOt']), 2)*100;
+//            $avg2 = round(($v['score'] + $v['ot']) / ($proto + ($proto/2)), 2)*100;
+//            $str .= "<tr><td>$k</td><td>" . $v['score'] . "</td><td>" . $v['maxScore'] . "</td><td>" . $v['ot'] . "</td><td>" . $v['maxOt'] .
+//                "</td><td>$proto</td><td>$avg%</td><td>$avg2%</td></tr>";
+//        }
+//    }
+//        $str .= '</table><h3><a href="../index.php">Home</a></h3>';
+//
+//        echo $str;
 }
 
 function rta($csv) {
