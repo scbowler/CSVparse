@@ -62,7 +62,7 @@ function updateInfo(action){
     var data = {
         action: action,
         csvFile: $("#csv").val()
-    }
+    };
 
     //console.log(data);
 
@@ -77,7 +77,7 @@ function updateInfo(action){
 
            switch (action) {
                case "mostProto":
-                   $("#maxProto").val(res.high);
+                   $("#maxProto").val(res.count);
                    break;
                case "popStudents":
                    console.log("Populate Students case");
