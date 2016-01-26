@@ -127,6 +127,7 @@ function showAllStudents($csv, $proto){
 
 function rta($csv) {
     $output = [];
+    $list = [];
 
     $setDates = false;
 
@@ -146,25 +147,52 @@ function rta($csv) {
         $date = $v['Date Reviewed'];
         $ts = strtotime($date);
         $name = $v['LFZ Reviewer'];
+        $title = explode(' -', $v['Tracking Item'])[0];
+        $item = $v['Student Name'].' - '.$title;
+
+        if(isset($output[$name]['total'])){
+            if($setDates) {
+                if ($ts >= $sDate && $ts <= $eDate) {
+                    $output[$name]['total']++;
+
+                }
+            }else{
+                $output[$name]['total']++;
+            }
+        }else{
+            if($setDates) {
+                if ($ts >= $sDate && $ts <= $eDate) {
+                    $output[$name]['total'] = 1;
+                }
+            }else{
+                $output[$name]['total'] = 1;
+            }
+        }
 
         if(isset($output[$name][$date])){
             if($setDates){
                 if($ts >= $sDate && $ts <= $eDate){
                     $output[$name][$date]++;
+                    $list[$name][] = $item;
                 }
             }else{
                 $output[$name][$date]++;
+                $list[$name][] = $item;
             }
         }else{
             if($setDates){
                 if($ts >= $sDate && $ts <= $eDate){
                     $output[$name][$date] = 1;
+                    $list[$name][] = $item;
                 }
             }else{
                 $output[$name][$date] = 1;
+                $list[$name][] = $item;
             }
         }
     }
+
+    $output['Full List'] = $list;
 
     echo '<pre>';
     print_r($output);
@@ -379,65 +407,99 @@ function popStudents($csv){
 function errorCheck($csv){
     echo "<h1>Error Check Results</h1>";
     $output['errorCount'] = 0;
+    $output['errorList'] = [];
+    $raw = [];
+    $lineOffset = 2;
     $stuChk = [];
 
-    $sData = str_getcsv($csv, "\n", $enclosure = '"');
-
-    foreach($sData as &$row) $row = str_getcsv($row, ",", $enclosure = '"');
-
-    foreach($sData as $k=>$v){
-        if($k != 0) {
-            $proto = explode(' (', $v[9])[0];
-            if(isset($stuChk[$v[2]][$proto])){
-                $stuChk[$v[2]][$proto]['count']++;
-            }else{
-                $stuChk[$v[2]][$proto]['count'] = 1;
-            }
-            $stuChk[$v[2]][$proto]['last-line'] = $k;
-            if (strpos($v[9], 'complete') || strpos($v[9], 'Complete')) {
-                if ($v[11] != 1) {
-                    $output['row'][] = $k;
-                    $output['errorType'][] = 'completed';
-                    $output['maxValue'][] = $v[11];
-                    $output['test'][] = explode(' (', $v[9])[0];
-                    $output['errorCount']++;
-                }
-            } else if (strpos($v[9], 'score') || strpos($v[9], 'Score')) {
-                if ($v[11] != 2) {
-                    $output['row'][] = $k;
-                    $output['errorType'][] = 'score';
-                    $output['maxValue'][] = $v[11];
-                    $output['test'][] = explode(' (', $v[9])[0];
-                    $output['errorCount']++;
-                }
-            } else {
-                $output['row'][] = $k;
-                $output['errorType'][] = 'Invalid Item';
-                $output['item'][] = $v[9];
-                $output['test'][] = explode(' (', $v[9])[0];
-                $output['errorCount']++;
-            }
-        }
-    }
-
-    foreach($stuChk as $k=>$v){
-        $output[$k]['mistakes'] = 0;
-        foreach($stuChk[$k] as $k2=>$v2){
-            if($v2['count'] != 2){
-                $output[$k]['mistakes']++;
-                $output[$k][$k2] = $v2;
-                $output[$k][$k2]['last-line'] = $v2['last-line'];
-                $output['errorCount']++;
-            }
-        }
-    }
+    $data = buildArray($csv);
 
 //    echo '<pre>';
-//    print_r($stuChk);
+//    print_r($data);
 //    echo '</pre>';
+
+    foreach($data['data'] as $k=>$v){
+
+        $proto = explode(' -', $v['Tracking Item'])[0];
+        $name = $v['Student Name'];
+
+        if(!isset($raw[$name])){
+            $raw[$name] = [];
+        }
+        $lineNum = $k + $lineOffset;
+        if(!isset($raw[$name][$proto])){
+            $raw[$name][$proto]['count'] = 1;
+            $raw[$name][$proto]['info'][] = ['Line Number' => $lineNum, 'Reviewer' => $v['LFZ Reviewer'], 'Proto Name' => $proto];
+        }else {
+            $raw[$name][$proto]['count']++;
+            $raw[$name][$proto]['info'][] = ['Line Number' => $lineNum, 'Reviewer' => $v['LFZ Reviewer'], 'Proto Name' => $proto];
+            $output['errorCount']++;
+            $output['errorList'][$name] = $raw[$name][$proto]['info'];
+        }
+    }
+    $output['Raw Data'] = $raw;
+
     echo '<pre>';
     print_r($output);
     echo '</pre>';
+
+//    $sData = str_getcsv($csv, "\n", $enclosure = '"');
+//
+//    foreach($sData as &$row) $row = str_getcsv($row, ",", $enclosure = '"');
+//
+//    foreach($sData as $k=>$v){
+//        if($k != 0) {
+//            $proto = explode(' (', $v[9])[0];
+//            if(isset($stuChk[$v[2]][$proto])){
+//                $stuChk[$v[2]][$proto]['count']++;
+//            }else{
+//                $stuChk[$v[2]][$proto]['count'] = 1;
+//            }
+//            $stuChk[$v[2]][$proto]['last-line'] = $k;
+//            if (strpos($v[9], 'complete') || strpos($v[9], 'Complete')) {
+//                if ($v[11] != 1) {
+//                    $output['row'][] = $k;
+//                    $output['errorType'][] = 'completed';
+//                    $output['maxValue'][] = $v[11];
+//                    $output['test'][] = explode(' (', $v[9])[0];
+//                    $output['errorCount']++;
+//                }
+//            } else if (strpos($v[9], 'score') || strpos($v[9], 'Score')) {
+//                if ($v[11] != 2) {
+//                    $output['row'][] = $k;
+//                    $output['errorType'][] = 'score';
+//                    $output['maxValue'][] = $v[11];
+//                    $output['test'][] = explode(' (', $v[9])[0];
+//                    $output['errorCount']++;
+//                }
+//            } else {
+//                $output['row'][] = $k;
+//                $output['errorType'][] = 'Invalid Item';
+//                $output['item'][] = $v[9];
+//                $output['test'][] = explode(' (', $v[9])[0];
+//                $output['errorCount']++;
+//            }
+//        }
+//    }
+//
+//    foreach($stuChk as $k=>$v){
+//        $output[$k]['mistakes'] = 0;
+//        foreach($stuChk[$k] as $k2=>$v2){
+//            if($v2['count'] != 2){
+//                $output[$k]['mistakes']++;
+//                $output[$k][$k2] = $v2;
+//                $output[$k][$k2]['last-line'] = $v2['last-line'];
+//                $output['errorCount']++;
+//            }
+//        }
+//    }
+//
+////    echo '<pre>';
+////    print_r($stuChk);
+////    echo '</pre>';
+//    echo '<pre>';
+//    print_r($output);
+//    echo '</pre>';
 }
 
 ?>
