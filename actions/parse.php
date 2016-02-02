@@ -330,7 +330,7 @@ function personalReport($csv){
 
     missTable($data['totals']['protoList'], $html);
 
-    $now = date('l, M d<\s\u\p>S</\s\u\p> \a\t H:i:s');
+    $now = date('l, M j<\s\u\p>S</\s\u\p> Y \a\t H:i:s');
 
     $html .= "<p>Report Generated: <b>$now</b></p>";
 
