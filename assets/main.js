@@ -38,14 +38,21 @@ function fileUp(evt){
         }
     };
 
-    console.log("Selected on file load", selected);
+    //console.log("Selected on file load", selected);
 }
 
 function toggleHidden(ele){
 
     var eleID = $(ele).attr("id");
 
-    console.log("Element ID", eleID);
+    //console.log("Element ID", eleID);
+
+    var options = $('#options-div');
+    if(eleID == "error"){
+        options.hide();
+    }else{
+        options.show();
+    }
 
     $(".show").removeClass("show");
 
@@ -54,7 +61,6 @@ function toggleHidden(ele){
     if(eleID == "populate"){
         $(".proto").addClass("show");
     }
-
 }
 
 function updateInfo(action){
@@ -62,7 +68,7 @@ function updateInfo(action){
     var data = {
         action: action,
         csvFile: $("#csv").val()
-    }
+    };
 
     //console.log(data);
 
@@ -77,7 +83,7 @@ function updateInfo(action){
 
            switch (action) {
                case "mostProto":
-                   $("#maxProto").val(res.high);
+                   $("#maxProto").val(res.count);
                    break;
                case "popStudents":
                    console.log("Populate Students case");

@@ -1,4 +1,9 @@
 <?php
+//Set time zone to: America/Los_Angeles
+date_default_timezone_set('America/Los_Angeles');
+
+//Global Constants
+$PPV = 2; //Prototype Point Value
 
 if(isset($_POST['csvFile'])) {
     $csv = $_POST['csvFile'];
@@ -13,7 +18,8 @@ if(isset($_POST['maxProto'])) {
 switch($action) {
     case 'prototype':
         include_once('../assets/parseCSS.php');
-        prototype($csv, $proto);
+        showAllStudents($csv, $proto);
+        //buildArray($csv);
         break;
     case 'rta':
         rta($csv);
@@ -40,66 +46,108 @@ function buildArray($csv){
     $output = [];
 
     $sData = str_getcsv($csv, "\n", $enclosure = '"');
+    $count = 0;
 
-    foreach($sData as &$row) $row = str_getcsv($row, ",", $enclosure = '"');
-
-    foreach ($sData as $aRow) {
-
-        if($aRow[2] !== '') {
-            if (strpos($aRow[9], 'score') || strpos($aRow[9], 'Score')) {
-                if (isset($output[$aRow[2]]['score'])) {
-                    $output[$aRow[2]]['score'] += $aRow[10];
-                    $output[$aRow[2]]['maxScore'] += $aRow[11];
-                } else {
-                    $output[$aRow[2]]['score'] = $aRow[10];
-                    $output[$aRow[2]]['maxScore'] = $aRow[11];
-                }
-                $output[$aRow[2]]['sAvg'] = $output[$aRow[2]]['score'] / $output[$aRow[2]]['maxScore'];
-            } else {
-                if (isset($output[$aRow[2]]['ot'])) {
-                    $output[$aRow[2]]['ot'] += (int)$aRow[10];
-                    $output[$aRow[2]]['maxOt']++;
-                } else {
-                    $output[$aRow[2]]['ot'] = (int)$aRow[10];
-                    $output[$aRow[2]]['maxOt'] = 1;
-                }
-
-                if($output[$aRow[2]]['maxOt'] > 0) {
-                    $output[$aRow[2]]['otAvg'] = $output[$aRow[2]]['ot'] / $output[$aRow[2]]['maxOt'];
-                }
+    foreach($sData as &$row) {
+        $row = str_getcsv($row, ",", $enclosure = '"');
+        if($count == 0){
+            $output['index'] = $row;
+        }else{
+            for($i = 0; $i < count($output['index']); $i++){
+                $temp[$output['index'][$i]] = $row[$i];
             }
+            $output['data'][] = $temp;
         }
+        $count++;
     }
+//    echo "<pre>";
+//    print_r($output);
+//    echo "</pre>";
+
     return $output;
 }
 
+function getNameTs($title){
+    $arr = explode(' - Due: ', $title);
+    $output['name'] = $arr[0];
 
-function prototype($csv, $proto){
-    $output = buildArray($csv);
+    $timeArr = explode('@', $arr[1]);
+    $output['ts'] = strtotime($timeArr[0].$timeArr[1]);
 
-    $str = "<table><tr><th>Name</th><th>Score</th><th>Personal Possible Score</th><th>On Time</th><th>Possible On Time</th><th>Overall Possible</th><th>Personal Snapshot</th><th>Overall Snapshot</th></tr>";
+    return $output;
+}
 
-    foreach ($output as $k=>$v) {
-        if ($k !== 'Student Name') {
+function studentArray($arr){
 
-            $avg = round(($v['score'] + $v['ot']) / ($v['maxScore'] + $v['maxOt']), 2)*100;
-            $avg2 = round(($v['score'] + $v['ot']) / ($proto + ($proto/2)), 2)*100;
-            $str .= "<tr><td>$k</td><td>" . $v['score'] . "</td><td>" . $v['maxScore'] . "</td><td>" . $v['ot'] . "</td><td>" . $v['maxOt'] .
-                "</td><td>$proto</td><td>$avg%</td><td>$avg2%</td></tr>";
+    global $PPV;
+    $output = [];
+
+    foreach($arr['data'] as $v){
+
+        if($v['Tracking Category'] == 'Prototype') {
+            if (!isset($output[$v['Student Name']])) {
+                $output[$v['Student Name']] = [
+                    'score' => 0,
+                    'ontime' => 0,
+                    'count' => 0,
+                    'possible' => 0,
+                    'list' => []
+                ];
+            }
+
+            if (strtolower($v['On time']) == 'yes') {
+                $ontime = 1;
+            } else {
+                $ontime = 0;
+            }
+            $titleArr = getNameTs($v['Tracking Item']);
+            $output[$v['Student Name']]['score'] += $v['Score'];
+            $output[$v['Student Name']]['ontime'] += $ontime;
+            $output[$v['Student Name']]['count']++;
+            $output[$v['Student Name']]['possible'] += $PPV;
+            $output[$v['Student Name']]['list'][] = [
+                'pName' => $titleArr['name'],
+                'pDue' => $titleArr['ts'],
+                'pScore' => $v['Score'],
+                'pOntime' => $v['On time']
+            ];
         }
     }
-        $str .= '</table><h3><a href="../index.php">Home</a></h3>';
 
-        echo $str;
+    return $output;
+}
+
+function showAllStudents($csv, $proto){
+    global $PPV;
+    $data = studentArray(buildArray($csv));
+
+    $html = '<table><tbody><tr><th>Student Name</th><th>% Turned In</th><th>% On Time</th><th>Personal Score</th><th>Overall Score</th><th>Avg Score</th></tr>';
+
+    foreach($data as $k=>$v){
+        $turnedIn = round($v['count']/$proto, 2)*100;
+        $ontime = round($v['ontime']/$proto, 2)*100;
+        $pScore = round($v['score']/$v['possible'], 2)*100;
+        $oScore = round($v['score']/($proto * $PPV), 2)*100;
+        $avgScore = round($v['score']/$v['count'], 2);
+
+        $html .= "<tr><th>$k</th><td>$turnedIn%</td><td>$ontime%</td><td>$pScore%</td><td>$oScore%</td><td>$avgScore</td></tr>";
+    }
+
+    $html .= '</tbody></table><h3><a href="javascript:history.go(-1)">Home</a></h3>';
+
+     echo $html;
 }
 
 function rta($csv) {
     $output = [];
+    $list = [];
 
     $setDates = false;
 
     $sDate = strtotime($_POST['start-date']);
     $eDate = strtotime($_POST['end-date']);
+
+    $data = buildArray($csv)['data'];
 
     if($sDate > 0){
         if($eDate == 0){
@@ -108,67 +156,137 @@ function rta($csv) {
         $setDates = true;
     }
 
-    echo '<br>'.$setDates;
+    foreach($data as $v){
+        $date = $v['Date Reviewed'];
+        $ts = strtotime($date);
+        $name = $v['LFZ Reviewer'];
+        $title = explode(' -', $v['Tracking Item'])[0];
+        $item = $v['Student Name'].' - '.$title;
 
-    $sData = str_getcsv($csv, "\n", $enclosure = '"');
+        if(isset($output[$name]['total'])){
+            if($setDates) {
+                if ($ts >= $sDate && $ts <= $eDate) {
+                    $output[$name]['total']++;
 
-    foreach($sData as &$row) $row = str_getcsv($row, ",", $enclosure = '"');
-
-    foreach($sData as $k=>$v){
-
-        $date = explode(' ', $v[0])[0];
-        $name = $v[4];
-
-        if (strpos($v[9], 'score') || strpos($v[9], 'Score')) {
-            if (!isset($output[$name][$date])) {
-                if($setDates){
-                    $ts = strtotime($date);
-                    if($ts >= $sDate && $ts<= $eDate){
-                        $output[$name][$date] = 1;
-                    }
-                }else {
-                    $output[$name][$date] = 1;
                 }
-            } else {
-                if($setDates){
-                    $ts = strtotime($date);
-                    if($ts >= $sDate && $ts<= $eDate){
-                        $output[$name][$date]++;
-                    }
-                }else {
+            }else{
+                $output[$name]['total']++;
+            }
+        }else{
+            if($setDates) {
+                if ($ts >= $sDate && $ts <= $eDate) {
+                    $output[$name]['total'] = 1;
+                }
+            }else{
+                $output[$name]['total'] = 1;
+            }
+        }
+
+        if(isset($output[$name][$date])){
+            if($setDates){
+                if($ts >= $sDate && $ts <= $eDate){
                     $output[$name][$date]++;
+                    $list[$name][] = $item;
                 }
+            }else{
+                $output[$name][$date]++;
+                $list[$name][] = $item;
+            }
+        }else{
+            if($setDates){
+                if($ts >= $sDate && $ts <= $eDate){
+                    $output[$name][$date] = 1;
+                    $list[$name][] = $item;
+                }
+            }else{
+                $output[$name][$date] = 1;
+                $list[$name][] = $item;
             }
         }
     }
+
+    $output['Full List'] = $list;
+
     echo '<pre>';
     print_r($output);
-    echo '<pre>';
+    echo '</pre>';
 }
 
-function getProtoList($arr){
+function getProtoList($arr, $stuArr = false){
+    global $PPV;
     $output = [];
 
-    foreach($arr as $v){
-        if($v[9] != 'Tracking Item') {
-            $proto = explode(' (', $v[9])[0];
-            if (!isset($output[$proto])) {
-                $output[$proto] = false;
-            }
+    foreach($arr['data'] as $v){
+        $nameArr = getNameTs($v['Tracking Item']);
+        if(!isset($output['protoList'][$nameArr['name']])){
+            $output['protoList'][$nameArr['name']] = $nameArr['ts'];
         }
     }
+
+    $output['count'] = $output['ontime'] = count($output['protoList']);
+    $output['maxScore'] = $output['count'] * $PPV;
+
+    if($stuArr){
+        foreach($stuArr['list'] as $v){
+            $output['protoList'][$v['pName']] = true;
+        }
+    }
+
     return $output;
 }
 
-function missTable($arr){
-    $html = '<table id="miss-proto"><tr><th>Missing Prototypes</th></tr>';
+function protoTable($arr, &$html){
+
+    $html .= '<table class="overview"><tbody><tr><th>Prototype</th><th>Score</th><th>On Time</th></tr>';
+
+    foreach($arr as $v){
+        $sClass = '';
+        $oClass = '';
+
+        $score = $v['pScore'];
+        $ot = $v['pOntime'];
+        $name = $v['pName'];
+
+        if($score == 1){
+            $sClass = 'yellow';
+        }elseif($score == 0){
+            $sClass = 'red';
+        }
+
+        if(strtolower($ot) == 'no'){
+            $oClass = 'red';
+        }
+
+        $html .= "<tr  class='$sClass'><td>$name</td><td>$score</td><td class='$oClass'>$ot</td></tr>";
+    }
+
+    $html .= '</tbody></table>';
+}
+
+function statTable($arr, &$html){
+
+    $overallTotalScore = $arr['totals']['maxScore'];
+    $personalPossible = $arr['sData']['possible'];
+    $personalEarned = $arr['sData']['score'];
+    $personalPerc = round(($personalEarned/$personalPossible)*100, 2).'%';
+    $overallPerc = round(($personalEarned/$overallTotalScore)*100, 2).'%';
+    $ontimePerc = round(($arr['sData']['ontime']/$arr['totals']['ontime'])*100, 2).'%';
+    $turnedIn = $arr['sData']['count'];
+    $due = $arr['totals']['count'];
+
+    $html .= "<table class='stats'><tbody><tr><th colspan='2'>$turnedIn of $due Prototypes Submitted</th></tr><tr><td>Personal Score of Reviewed Prototypes</td><th>$personalPerc</th></tr><tr><td>Overall Class Percentage: Based on $due Prototypes</td><th>$overallPerc</th></tr><tr><td>On Time Percentage (of reviewed)</td><th>$ontimePerc</th></tr></tbody></table>";
+}
+
+function missTable($arr, &$html){
+    $html .= '<table id="miss-proto"><tr><th>Missing Prototypes</th><th>Due</th></tr>';
     $opt = false;
     $none = true;
 
     foreach($arr as $k=>$v){
-        if(!$v){
+        if($v !== true){
+            $date = date('l, M j Y', $v);
             $none = false;
-            $html .= "<tr><td>$k</td></tr>";
+            $html .= "<tr><td>$k</td><td>$date</td></tr>";
             if(strpos($k, '*')){
                 $opt = true;
             }
@@ -188,136 +306,53 @@ function missTable($arr){
         $html .= '<tr class="sp-note"><td>Prototypes with * are optional</td></tr>';
     }
     $html .= '</table>';
-
-    return $html;
 }
 
 function personalReport($csv){
 
     $output['success'] = false;
-
-    $sName = $_POST['students'];
-
-    $sData = str_getcsv($csv, "\n", $enclosure = '"');
-
-    foreach($sData as &$row) $row = str_getcsv($row, ",", $enclosure = '"');
-
-    $output['protoList'] = getProtoList($sData);
-
-//    echo "<pre>";
-//    print_r($output);
-//    echo "</pre>";
-//    return;
-
-    $output['totalScore'] = 0;
-    $output['totalOnTime'] = 0;
-
-    foreach($sData as $k=>$v){
-        if($v[2] == $sName) {
-            $proto = explode(' (', $v[9])[0];
-            if (isset($output['protoList'][$proto])){
-                $output['protoList'][$proto] = true;
-            }
-            if(strpos($v[9], 'score') || strpos($v[9], 'Score')) {
-                $output['name'] = $v[2];
-                $output['proto'][] = $proto;
-                $output['score'][] = $v[10];
-                $output['totalScore'] += $v[10];
-            }else{
-                $output['complete'][] = $v[9];
-                if($v[10] == 1) {
-                    $output['ontime'][] = 'Yes';
-                    $output['totalOnTime']++;
-                }else if($v[10] == 0){
-                    $output['ontime'][] = 'No';
-                }else{
-                    $output['ontime'][] = "ERROR $v[10] $v[0]";
-                }
-            }
-        }
+    if(isset($_POST['students'])){
+        $sName = $_POST['students'];
+    }else{
+        echo '<h1>No name selected</h1><a style="font-size: 2em;" href="javascript:history.go(-1)">GO BACK</a>';
+        return;
     }
-    $len = count($output['proto']);
-    $lenOt = count($output['ontime']);
 
-    if($len > 0) {
-        $output['success'] = true;
-        $offset = '<p>Score and Complete match</p>';
-        if($len > $lenOt){
-            $missing = $len - $lenOt;
-            $ent = 'entry';
-            if($missing > 1){
-                $ent = 'entries';
-            }
-            $offset = "<p>There is $missing extra ".'"score" '.$ent."</p>";
-        }else if($len < $lenOt){
-            $missing = $lenOt - $len;
-            $ent = 'entry';
-            if($missing > 1){
-                $ent = 'entries';
-            }
-            $offset = "<p>There is $missing extra ".'"complete" '.$ent."</p>";
-        }
-        $html = '<h1 class="sName">' . $output['name'] . '</h1><div><a href="../index.php"><img src="../assets/images/home-icon.png"></a></div><table class="overview"><tr><th>Prototype</th><th>Score</th><th>On-Time</th></tr>';
+    $rawData = buildArray($csv);
+    $data['sData'] = studentArray($rawData)[$sName];
+    $data['totals'] = getProtoList($rawData, $data['sData']);
 
-        for ($i = 0; $i < $len; $i++) {
-            $score = $output['score'][$i];
-            $class = '';
-            $otClass = '';
-            $missingData = '';
+    $html = "<h1 class='sName'>$sName</h1><div><a href='javascript:history.go(-1)'><img src='../assets/images/home-icon.png'></a></div>";
 
-            if(isset($output['ontime'][$i])){
-                $ot = $output['ontime'][$i];
-                if($ot == 'No' || strpos($ot, 'ERROR')){
-                    $otClass = 'red';
-                }
-            }else{
-                $otClass = 'gray';
-                $ot = 'Yes';
-                $missingData = '*';
-                $output['totalOnTime']++;
-            }
-            if($score == 1){
-                $class = 'yellow';
-            }else if($score == 0){
-                $class = 'red';
-            }
+    protoTable($data['sData']['list'], $html);
 
-            $html .= '<tr class="'.$class.'"><td>' . $output['proto'][$i] . '</td><td>' . $score . '</td><td class="'.$otClass.'">' . $ot . '</td></tr>';
-        }
-        $overallTotal = $_POST['maxProto'];
-        $personalPerc = round((($output['totalScore']/($len*2))*100),2).'%';
-        $overallPerc = round((($output['totalScore']/$overallTotal)*100),2).'%';
-        $ontime = round(($output['totalOnTime']/$len)*100,2).'%'.$missingData;
+    statTable($data, $html);
 
-        $html .= '<table class="stats"><tr><th colspan="2">'.$len.' of '.round($overallTotal/2,0).' Prototypes Submitted</th></tr><tr><td>Personal Score of Reviewed Prototypes</td><th>'.$personalPerc.'</th></tr>
-        <tr><td>Overall class percentage based on '.round($overallTotal/2,0).' prototypes</td><th>'.$overallPerc.'</th></tr>
-        <tr><td>On-time percentage (of reviewed)</td><th>'.$ontime.'</th></tr></table>'.missTable($output['protoList']).'<p>If * is present on "On-Time" percentage, data is missing from tracker</p>'.$offset;
-    }
-    //$html .= ;
+    missTable($data['totals']['protoList'], $html);
+
+    $now = date('l, M d<\s\u\p>S</\s\u\p> \a\t H:i:s');
+
+    $html .= "<p>Report Generated: <b>$now</b></p>";
 
     echo $html;
 
 //    echo '<pre>';
-//    print_r($output);
+//    print_r($data);
 //    echo '</pre>';
 }
 
 function getMax($csv){
     $output['success'] = false;
-    $output['high'] = 0;
 
     $dataArr = buildArray($csv);
 
-    foreach($dataArr as $k=>$v){
-        if(isset($v['maxScore'])) {
-            $max = $v['maxScore'];
+    $protoList = getProtoList($dataArr);
 
-            if ($output['high'] < $max) {
-                $output['high'] = $max;
-                $output['success'] = true;
-            }
-        }
+    if($protoList['count']){
+        $output['count'] = $protoList['count'];
+        $output['success'] = true;
     }
+
     echo json_encode($output);
 }
 
@@ -327,82 +362,56 @@ function popStudents($csv){
 
     $dataArr = buildArray($csv);
 
-    if(count($dataArr) > 1){
-        foreach ($dataArr as $k=>$v){
-            if($k !== 'Student Name') {
-                $output['students'][] = $k;
-            }
+    $studentData = studentArray($dataArr);
+
+    if(count($studentData)){
+        foreach($studentData as $k=>$v){
+            $output['students'][] = $k;
         }
 
         if(count($output['students'])){
             $output['success'] = true;
         }
     }
+
     echo json_encode($output);
 }
 
 function errorCheck($csv){
     echo "<h1>Error Check Results</h1>";
     $output['errorCount'] = 0;
-    $stuChk = [];
+    $output['errorList'] = [];
+    $raw = [];
+    $lineOffset = 2;
+    //$stuChk = [];
 
-    $sData = str_getcsv($csv, "\n", $enclosure = '"');
+    $data = buildArray($csv);
 
-    foreach($sData as &$row) $row = str_getcsv($row, ",", $enclosure = '"');
+    foreach($data['data'] as $k=>$v){
 
-    foreach($sData as $k=>$v){
-        if($k != 0) {
-            $proto = explode(' (', $v[9])[0];
-            if(isset($stuChk[$v[2]][$proto])){
-                $stuChk[$v[2]][$proto]['count']++;
-            }else{
-                $stuChk[$v[2]][$proto]['count'] = 1;
-            }
-            $stuChk[$v[2]][$proto]['last-line'] = $k;
-            if (strpos($v[9], 'complete') || strpos($v[9], 'Complete')) {
-                if ($v[11] != 1) {
-                    $output['row'][] = $k;
-                    $output['errorType'][] = 'completed';
-                    $output['maxValue'][] = $v[11];
-                    $output['test'][] = explode(' (', $v[9])[0];
-                    $output['errorCount']++;
-                }
-            } else if (strpos($v[9], 'score') || strpos($v[9], 'Score')) {
-                if ($v[11] != 2) {
-                    $output['row'][] = $k;
-                    $output['errorType'][] = 'score';
-                    $output['maxValue'][] = $v[11];
-                    $output['test'][] = explode(' (', $v[9])[0];
-                    $output['errorCount']++;
-                }
-            } else {
-                $output['row'][] = $k;
-                $output['errorType'][] = 'Invalid Item';
-                $output['item'][] = $v[9];
-                $output['test'][] = explode(' (', $v[9])[0];
-                $output['errorCount']++;
-            }
+        $proto = explode(' -', $v['Tracking Item'])[0];
+        $name = $v['Student Name'];
+
+        if(!isset($raw[$name])){
+            $raw[$name] = [];
+        }
+        $lineNum = $k + $lineOffset;
+        if(!isset($raw[$name][$proto])){
+            $raw[$name][$proto]['count'] = 1;
+            $raw[$name][$proto]['info'][] = ['Line Number' => $lineNum, 'Reviewer' => $v['LFZ Reviewer'], 'Proto Name' => $proto];
+        }else {
+            $raw[$name][$proto]['count']++;
+            $raw[$name][$proto]['info'][] = ['Line Number' => $lineNum, 'Reviewer' => $v['LFZ Reviewer'], 'Proto Name' => $proto];
+            $output['errorCount']++;
+            $output['errorList'][$name] = $raw[$name][$proto]['info'];
         }
     }
+    $output['Raw Data'] = $raw;
 
-    foreach($stuChk as $k=>$v){
-        $output[$k]['mistakes'] = 0;
-        foreach($stuChk[$k] as $k2=>$v2){
-            if($v2['count'] != 2){
-                $output[$k]['mistakes']++;
-                $output[$k][$k2] = $v2;
-                $output[$k][$k2]['last-line'] = $v2['last-line'];
-                $output['errorCount']++;
-            }
-        }
-    }
-
-//    echo '<pre>';
-//    print_r($stuChk);
-//    echo '</pre>';
     echo '<pre>';
     print_r($output);
     echo '</pre>';
+
 }
 
 ?>

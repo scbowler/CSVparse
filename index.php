@@ -25,7 +25,7 @@
             <label for="error">Error Check CSV</label>
             <input type="radio" name="action" id="error" value="error">
         </div>
-        <div class="contain">
+        <div id="options-div" class="contain">
             <label for="maxProto" class="proto show">Total Prototypes Due</label>
             <input type="number" name="maxProto" id="maxProto" class="proto show" placeholder="Total prototypes">
             <div>
