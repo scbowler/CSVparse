@@ -28,10 +28,8 @@ form {
 
 .contain {
     display: inline-block;
-    border: 2px solid green;
     padding: 1%;
     margin-top: 1%;
-    height: 88px;
 }
 
 .students {

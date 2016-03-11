@@ -26,11 +26,11 @@
             <input type="radio" name="action" id="error" value="error">
         </div>
         <div id="options-div" class="contain">
-            <label for="maxProto" class="proto show">Total Prototypes Due</label>
-            <input type="number" name="maxProto" id="maxProto" class="proto show" placeholder="Total prototypes">
-            <div>
-                <button type="button" id="auto-pop" class="proto show">Auto Populate Total Prototypes</button>
-            </div>
+<!--            <label for="maxProto" class="proto show">Total Prototypes Due</label>-->
+<!--            <input type="number" name="maxProto" id="maxProto" class="proto show" placeholder="Total prototypes">-->
+<!--            <div>-->
+<!--                <button type="button" id="auto-pop" class="proto show">Auto Populate Total Prototypes</button>-->
+<!--            </div>-->
             <label for="start-date" class="rta">Start Date</label>
             <input type="date" name="start-date" id="start-date" class="rta">
             <label for="end-date" class="rta">End Date</label>
