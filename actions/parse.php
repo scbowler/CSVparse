@@ -5,7 +5,7 @@ date_default_timezone_set('America/Los_Angeles');
 //Global Constants
 $PPV = 2; //Prototype Point Value
 
-if(isset($_POST['csvFile'])) {
+if(isset($_POST['csvFile']) && $_POST['csvFile'] !== '') {
     $csv = $_POST['csvFile'];
 
     if (isset($_POST['action'])) {
@@ -37,7 +37,11 @@ if(isset($_POST['csvFile'])) {
                 echo 'No action chosen';
                 break;
         }
+    }else{
+        echo '<h2>No action chosen <a href=\'javascript:history.go(-1)\'>Return</a></h2>';
     }
+}else{
+    echo '<h2>No CSV data found <a href=\'javascript:history.go(-1)\'>Return</a></h2>';
 }
 
 function buildArray($csv){
@@ -141,7 +145,9 @@ function showAllStudents($csv){
         $html .= "<tr><td>$v[path]</td><th>$k</th><td>$turnedIn%</td><td>$ontime%</td><td>$pScore%</td><td>$oScore%</td><td>$avgScore</td></tr>";
     }
 
-    $html .= '</tbody></table><h3><a href="javascript:history.go(-1)">Home</a></h3>';
+    $now = date('l, M j<\s\u\p>S</\s\u\p> Y \a\t H:i:s');
+
+    $html .= "</tbody></table><p>Report Generated: $now</p><h3><a href='javascript:history.go(-1)'>Home</a></h3>";
 
      echo $html;
 }
@@ -440,7 +446,5 @@ function errorCheck($csv){
     echo '<pre>';
     print_r($output);
     echo '</pre>';
-
 }
-
 ?>
