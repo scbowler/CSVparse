@@ -231,14 +231,16 @@ function getProtoList($arr, $stuArr = false){
     $output = [];
 
     foreach($arr['data'] as $v){
-        $nameArr = getNameTs($v['Tracking Item']);
-        if(!isset($output['protoList'][$nameArr['name']])){
-            if($stuArr){
-                if((isset($nameArr['path']) && $nameArr['path'] == $stuArr['path']) || !isset($nameArr['path'])){
+        if($v['Tracking Category'] == 'Prototype') {
+            $nameArr = getNameTs($v['Tracking Item']);
+            if (!isset($output['protoList'][$nameArr['name']])) {
+                if ($stuArr) {
+                    if ((isset($nameArr['path']) && $nameArr['path'] == $stuArr['path']) || !isset($nameArr['path'])) {
+                        $output['protoList'][$nameArr['name']] = $nameArr['ts'];
+                    }
+                } else {
                     $output['protoList'][$nameArr['name']] = $nameArr['ts'];
                 }
-            }else{
-                $output['protoList'][$nameArr['name']] = $nameArr['ts'];
             }
         }
     }
