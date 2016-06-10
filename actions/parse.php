@@ -200,21 +200,21 @@ function rta($csv) {
             if($setDates){
                 if($ts >= $sDate && $ts <= $eDate){
                     $output[$name][$date]++;
-                    $list[$name][] = $item;
+                    $list[$name][] = $item.' - '.$date;
                 }
             }else{
                 $output[$name][$date]++;
-                $list[$name][] = $item;
+                $list[$name][] = $item.' - '.$date;
             }
         }else{
             if($setDates){
                 if($ts >= $sDate && $ts <= $eDate){
                     $output[$name][$date] = 1;
-                    $list[$name][] = $item;
+                    $list[$name][] = $item.' - '.$date;
                 }
             }else{
                 $output[$name][$date] = 1;
-                $list[$name][] = $item;
+                $list[$name][] = $item.' - '.$date;
             }
         }
     }
