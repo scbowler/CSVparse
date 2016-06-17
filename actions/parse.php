@@ -57,7 +57,9 @@ function buildArray($csv){
         }else{
             $temp = [];
             for($i = 0; $i < count($output['index']); $i++){
-                $temp[$output['index'][$i]] = $row[$i];
+                if($row[$i] != ''){
+                    $temp[strtolower($output['index'][$i])] = $row[$i];
+                }
             }
             $output['data'][] = $temp;
         }
@@ -90,9 +92,9 @@ function studentArray($arr){
 
     foreach($arr['data'] as $v){
 
-        if($v['Tracking Category'] == 'Prototype') {
-            if (!isset($output[$v['Student Name']])) {
-                $output[$v['Student Name']] = [
+        if($v['tracking category'] == 'Prototype') {
+            if (!isset($output[$v['student name']])) {
+                $output[$v['student name']] = [
                     'score' => 0,
                     'ontime' => 0,
                     'count' => 0,
@@ -102,24 +104,24 @@ function studentArray($arr){
                 ];
             }
 
-            if (strtolower($v['On time']) == 'yes') {
+            if (strtolower($v['on time']) == 'yes') {
                 $ontime = 1;
             } else {
                 $ontime = 0;
             }
-            $titleArr = getNameTs($v['Tracking Item']);
-            $output[$v['Student Name']]['score'] += $v['Score'];
-            $output[$v['Student Name']]['ontime'] += $ontime;
-            $output[$v['Student Name']]['count']++;
-            $output[$v['Student Name']]['possible'] += $PPV;
-            $output[$v['Student Name']]['list'][] = [
+            $titleArr = getNameTs($v['tracking item']);
+            $output[$v['student name']]['score'] += $v['score'];
+            $output[$v['student name']]['ontime'] += $ontime;
+            $output[$v['student name']]['count']++;
+            $output[$v['student name']]['possible'] += $PPV;
+            $output[$v['student name']]['list'][] = [
                 'pName' => $titleArr['name'],
                 'pDue' => $titleArr['ts'],
-                'pScore' => $v['Score'],
-                'pOntime' => $v['On time']
+                'pScore' => $v['score'],
+                'pOntime' => $v['on time']
             ];
-            if($output[$v['Student Name']]['path'] === null && isset($titleArr['path'])){
-                $output[$v['Student Name']]['path'] = $titleArr['path'];
+            if($output[$v['student name']]['path'] === null && isset($titleArr['path'])){
+                $output[$v['student name']]['path'] = $titleArr['path'];
             }
         }
     }
@@ -174,8 +176,8 @@ function rta($csv) {
         $date = $v['Date Reviewed'];
         $ts = strtotime($date);
         $name = $v['LFZ Reviewer'];
-        $title = explode(' -', $v['Tracking Item'])[0];
-        $item = $v['Student Name'].' - '.$title;
+        $title = explode(' -', $v['tracking item'])[0];
+        $item = $v['student name'].' - '.$title;
 
         if(isset($output[$name]['total'])){
             if($setDates) {
@@ -231,8 +233,8 @@ function getProtoList($arr, $stuArr = false){
     $output = [];
 
     foreach($arr['data'] as $v){
-        if($v['Tracking Category'] == 'Prototype') {
-            $nameArr = getNameTs($v['Tracking Item']);
+        if($v['tracking category'] == 'Prototype') {
+            $nameArr = getNameTs($v['tracking item']);
             if (!isset($output['protoList'][$nameArr['name']])) {
                 if ($stuArr) {
                     if ((isset($nameArr['path']) && $nameArr['path'] == $stuArr['path']) || !isset($nameArr['path'])) {
@@ -426,8 +428,8 @@ function errorCheck($csv){
 
     foreach($data['data'] as $k=>$v){
 
-        $proto = explode(' -', $v['Tracking Item'])[0];
-        $name = $v['Student Name'];
+        $proto = explode(' -', $v['tracking item'])[0];
+        $name = $v['student name'];
 
         if(!isset($raw[$name])){
             $raw[$name] = [];
