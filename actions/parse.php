@@ -14,24 +14,42 @@ if(isset($_POST['csvFile']) && $_POST['csvFile'] !== '') {
         switch ($action) {
             case 'prototype':
                 include_once('../assets/parseCSS.php');
-                showAllStudents($csv);
-                //buildArray($csv);
+                if(isset($_POST['roster'])) {
+                    $roster = $_POST['roster'];
+                    showAllStudents($csv, $roster);
+                } else {
+                    echo '<h1>No class roster selected <a href=\'javascript:history.go(-1)\'>Return</a></h1>';
+                }
                 break;
             case 'rta':
                 rta($csv);
                 break;
             case 'report':
                 include_once('../assets/reportCSS.php');
-                personalReport($csv);
-                break;
-            case 'mostProto':
-                getMax($csv);
+                if(isset($_POST['roster'])){
+                    $roster = $_POST['roster'];
+                    personalReport($csv, $roster);
+                }else{
+                    echo '<h1>No class roster selected <a href=\'javascript:history.go(-1)\'>Return</a></h1>';
+                }
                 break;
             case 'popStudents':
-                popStudents($csv);
+                if(isset($_POST['roster'])){
+                    $roster = $_POST['roster'];
+                    popStudents($csv, $roster);
+                }else{
+                    $output = [
+                        'success' => false,
+                        'error' => 'No class roster selected'
+                    ];
+                    echo json_encode($output);
+                }
                 break;
             case 'error':
                 errorCheck($csv);
+                break;
+            case 'class list':
+                getClassList($csv);
                 break;
             default:
                 echo 'No action chosen';
@@ -85,16 +103,17 @@ function getNameTs($title){
     return $output;
 }
 
-function studentArray($arr){
+function studentArray($arr, $roster){
 
     global $PPV;
     $output = [];
 
     foreach($arr['data'] as $v){
 
-        if($v['tracking category'] == 'Prototype') {
+        if($v['tracking category'] == 'Prototype' && $v['class roster'] == $roster) {
             if (!isset($output[$v['student name']])) {
                 $output[$v['student name']] = [
+                    'class' => '',
                     'score' => 0,
                     'ontime' => 0,
                     'count' => 0,
@@ -110,18 +129,20 @@ function studentArray($arr){
                 $ontime = 0;
             }
             $titleArr = getNameTs($v['tracking item']);
-            $output[$v['student name']]['score'] += $v['score'];
-            $output[$v['student name']]['ontime'] += $ontime;
-            $output[$v['student name']]['count']++;
-            $output[$v['student name']]['possible'] += $PPV;
-            $output[$v['student name']]['list'][] = [
+            $name = $v['student name'];
+            $output[$name]['class'] = $v['class roster'];
+            $output[$name]['score'] += $v['score'];
+            $output[$name]['ontime'] += $ontime;
+            $output[$name]['count']++;
+            $output[$name]['possible'] += $PPV;
+            $output[$name]['list'][] = [
                 'pName' => $titleArr['name'],
                 'pDue' => $titleArr['ts'],
                 'pScore' => $v['score'],
                 'pOntime' => $v['on time']
             ];
-            if($output[$v['student name']]['path'] === null && isset($titleArr['path'])){
-                $output[$v['student name']]['path'] = $titleArr['path'];
+            if($output[$name]['path'] === null && isset($titleArr['path'])){
+                $output[$name]['path'] = $titleArr['path'];
             }
         }
     }
@@ -129,15 +150,15 @@ function studentArray($arr){
     return $output;
 }
 
-function showAllStudents($csv){
+function showAllStudents($csv, $roster){
     $rawData = buildArray($csv);
-    $sData = studentArray($rawData);
+    $sData = studentArray($rawData, $roster);
 
     $html = '<table><tbody><tr><th>FE / BE</th><th>Student Name</th><th>% Turned In</th><th>% On Time</th><th>Personal Score</th><th>Overall Score</th><th>Avg Score</th></tr>';
 
     foreach($sData as $k=>$v){
 
-        $l = getProtoList($rawData, $v);
+        $l = getProtoList($rawData, $v, $roster);
         $turnedIn = round(($l['turnedIn']/$l['count']), 2)*100;
         $ontime = round(($v['ontime']/$l['ontime']), 2)*100;
         $pScore = round($v['score']/$v['possible'], 2)*100;
@@ -228,12 +249,12 @@ function rta($csv) {
     echo '</pre>';
 }
 
-function getProtoList($arr, $stuArr = false){
+function getProtoList($arr, $stuArr = false, $roster){
     global $PPV;
     $output = [];
 
     foreach($arr['data'] as $v){
-        if($v['tracking category'] == 'Prototype') {
+        if($v['tracking category'] == 'Prototype' && $v['class roster'] == $roster) {
             $nameArr = getNameTs($v['tracking item']);
             if (!isset($output['protoList'][$nameArr['name']])) {
                 if ($stuArr) {
@@ -336,7 +357,7 @@ function missTable($arr, &$html){
     $html .= '</table>';
 }
 
-function personalReport($csv){
+function personalReport($csv, $roster){
 
     $output['success'] = false;
     if(isset($_POST['students'])){
@@ -347,8 +368,8 @@ function personalReport($csv){
     }
 
     $rawData = buildArray($csv);
-    $data['sData'] = studentArray($rawData)[$sName];
-    $data['totals'] = getProtoList($rawData, $data['sData']);
+    $data['sData'] = studentArray($rawData, $roster)[$sName];
+    $data['totals'] = getProtoList($rawData, $data['sData'], $roster);
 
     if(isset($data['sData']['path'])){
         $path = $data['sData']['path'];
@@ -381,28 +402,37 @@ function personalReport($csv){
     echo $html;
 }
 
-function getMax($csv){
+function getClassList($csv){
     $output['success'] = false;
 
     $dataArr = buildArray($csv);
 
-    $protoList = getProtoList($dataArr);
+    foreach($dataArr['data'] as $k=>$v){
+        if(isset($v['class roster'])) {
+            $class = $v['class roster'];
+            if (!isset($temp[$class])) {
+                $temp[$class] = $class;
+            }
+        }
+    }
 
-    if($protoList['count']){
-        $output['count'] = $protoList['count'];
+    if(isset($temp)){
+        $output['class list'] = $temp;
         $output['success'] = true;
+    }else {
+        $output['error'] = 'No classes found';
     }
 
     echo json_encode($output);
 }
 
-function popStudents($csv){
+function popStudents($csv, $roster){
     $output['students'] = [];
     $output['success'] = false;
 
     $dataArr = buildArray($csv);
 
-    $studentData = studentArray($dataArr);
+    $studentData = studentArray($dataArr, $roster);
 
     if(count($studentData)){
         foreach($studentData as $k=>$v){
@@ -437,15 +467,15 @@ function errorCheck($csv){
         $lineNum = $k + $lineOffset;
         if(!isset($raw[$name][$proto])){
             $raw[$name][$proto]['count'] = 1;
-            $raw[$name][$proto]['info'][] = ['Line Number' => $lineNum, 'Reviewer' => $v['LFZ Reviewer'], 'Proto Name' => $proto];
+            $raw[$name][$proto]['info'][] = ['Line Number' => $lineNum, 'Reviewer' => $v['lfz reviewer'], 'Proto Name' => $proto];
         }else {
             $raw[$name][$proto]['count']++;
-            $raw[$name][$proto]['info'][] = ['Line Number' => $lineNum, 'Reviewer' => $v['LFZ Reviewer'], 'Proto Name' => $proto];
+            $raw[$name][$proto]['info'][] = ['Line Number' => $lineNum, 'Reviewer' => $v['lfz reviewer'], 'Proto Name' => $proto];
             $output['errorCount']++;
             $output['errorList'][$name] = $raw[$name][$proto]['info'];
         }
     }
-    $output['Raw Data'] = $raw;
+    $output['raw data'] = $raw;
 
     echo '<pre>';
     print_r($output);
