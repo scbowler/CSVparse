@@ -5,7 +5,7 @@
 
 ## How to Use
 >- Clone / Fork repo
-- At this time the most up to date branch is **multi-class**, so make sure to switch to it
+- **master** is the most current branch, make sure you pull the most updated version
 - Navigate to the current **Student Tracker Response Sheet**
 - Download sheet as CSV file
 - Open CSV index.php file in browser (With MAMP or equivalent)
