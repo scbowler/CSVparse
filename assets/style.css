@@ -42,7 +42,9 @@ form {
     font-size: 110%;
 }
 
-
+.hide {
+    display: none;
+}
 
 .show {
     display: inline-block;
