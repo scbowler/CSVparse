@@ -194,9 +194,9 @@ function rta($csv) {
     }
 
     foreach($data as $v){
-        $date = $v['Date Reviewed'];
+        $date = $v['date reviewed'];
         $ts = strtotime($date);
-        $name = $v['LFZ Reviewer'];
+        $name = $v['lfz reviewer'];
         $title = explode(' -', $v['tracking item'])[0];
         $item = $v['student name'].' - '.$title;
 
@@ -458,14 +458,15 @@ function errorCheck($csv){
 
     foreach($data['data'] as $k=>$v){
 
-        $proto = explode(' -', $v['tracking item'])[0];
+        $roster = $v['class roster'];
+        $proto = explode(' -', $v['tracking item'])[0].'-'.$roster;
         $name = $v['student name'];
 
         if(!isset($raw[$name])){
             $raw[$name] = [];
         }
         $lineNum = $k + $lineOffset;
-        if(!isset($raw[$name][$proto])){
+        if(empty($raw[$name][$proto])){
             $raw[$name][$proto]['count'] = 1;
             $raw[$name][$proto]['info'][] = ['Line Number' => $lineNum, 'Reviewer' => $v['lfz reviewer'], 'Proto Name' => $proto];
         }else {

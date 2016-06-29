@@ -21,7 +21,7 @@
                 <option value="" disabled selected>Choose Cohort Roster</option>
             </select>
         </div>
-        <div class="radio-contain hide">
+        <div class="radio-contain">
             <label for="prototype">Prototypes</label>
             <input type="radio" name="action" id="proto" value="prototype" checked>
             <label for="rta">Remote TA</label>
@@ -37,8 +37,8 @@
             <label for="end-date" class="rta">End Date</label>
             <input type="date" name="end-date" id="end-date" class="rta">
         </div>
-        <div class="btn-contain hide">
-            <button id="btn" disabled>Submit</button>
+        <div class="btn-contain">
+            <button id="btn">Submit</button>
         </div>
     </form>
 

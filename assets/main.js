@@ -18,6 +18,11 @@ $(document).ready(function () {
     $("#populate").on("click", function () {
         updateInfo("popStudents");
     });
+
+    if($('#csv').val() != ''){
+        console.log('This got called');
+        updateInfo('class list');
+    }
 });
 
 function fileUp(evt) {
