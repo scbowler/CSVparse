@@ -15,6 +15,12 @@
     <form action="actions/parse.php" method="post">
         <input type="file" name="File Upload" id="txtFileUpload" accept=".csv">
         <textarea name="csvFile" id="csv" cols="80" rows="3" placeholder="Copy csv data here -OR- Click button above to load a CSV file"></textarea>
+        <div class="pick-roster">
+            <label for="roster"></label>
+            <select name="roster" id="roster">
+                <option value="" disabled selected>Choose Cohort Roster</option>
+            </select>
+        </div>
         <div class="radio-contain">
             <label for="prototype">Prototypes</label>
             <input type="radio" name="action" id="proto" value="prototype" checked>
@@ -26,11 +32,6 @@
             <input type="radio" name="action" id="error" value="error">
         </div>
         <div id="options-div" class="contain">
-<!--            <label for="maxProto" class="proto show">Total Prototypes Due</label>-->
-<!--            <input type="number" name="maxProto" id="maxProto" class="proto show" placeholder="Total prototypes">-->
-<!--            <div>-->
-<!--                <button type="button" id="auto-pop" class="proto show">Auto Populate Total Prototypes</button>-->
-<!--            </div>-->
             <label for="start-date" class="rta">Start Date</label>
             <input type="date" name="start-date" id="start-date" class="rta">
             <label for="end-date" class="rta">End Date</label>
